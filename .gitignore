@@ -353,7 +353,7 @@ MigrationBackup/
 *.txt
 
 # Folders for personal results and testing scripts
-Testing-scripts/
+Testing/
 Results/
 GP_Archive/
 
