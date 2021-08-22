@@ -1,7 +1,7 @@
 # McNova
 This is a python program for calculating bolometric luminosities of supernovae using gaussian processes and MCMC sampling. This is done using a set of observed magnitudes which can be either apparent or absolute.
 
-This program was based on the "Superbol.py" program created by Matt Nicholl in 2015. However, while "Superbol.py" using curve_fit to model the observed flux evolution and calculate the bolometric luminosity, "McNova" uses gaussian processes to model the observed flux and then performs and MCMC sampling to search for the optimal parameters needed to calculate bolometric luminosities.
+This program was based on the ["Superbol.py"](https://github.com/mnicholl/superbol) program created by Matt Nicholl in 2015. However, while "Superbol.py" using curve_fit to model the observed flux evolution and calculate the bolometric luminosity, "McNova" uses gaussian processes to model the observed flux and then performs and MCMC sampling to search for the optimal parameters needed to calculate bolometric luminosities.
 
 Requirements and Usage
  - numpy
