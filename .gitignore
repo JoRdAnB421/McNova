@@ -350,7 +350,9 @@ MigrationBackup/
 .ionide/
 
 # Any txt files (these are how the supernova data is stored)
+# Make exception for those that are inside the examples folder so that users can see and test on example files
 *.txt
+!Example_data_files/*.txt
 
 # Folders for personal results and testing scripts
 Testing/
