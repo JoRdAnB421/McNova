@@ -14,7 +14,7 @@ version = '0'
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate as itg
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize
 from scipy.interpolate import interpolate as interp
 import glob
 import sys
@@ -970,10 +970,28 @@ if useInt!='y':
                     tmp_flux, tmp_flux_err = mag2flux(i, lc[i][:,1], lc[i][:,2], dist=dist, zp = zp)
                     kernel = np.var(tmp_flux)*kernel
                     
-                    
                     # Using the choosen kernel to compute the fit of the data
                     gp = george.GP(kernel)
                     gp.compute(lc[i][:,0], tmp_flux_err)
+
+                    if len(lc[i][:,0]) <= 3:
+                        # In the case where a data file only has a couple of points the, the fit can sometimes not be placed in the right location
+                        # This section here will use scipy minimise to find the optimal location of the fit, given the metric provided by the user
+                        metric_name = gp.get_parameter_names()[1]
+                        gp.freeze_parameter(metric_name)
+
+                        def neg_ln_like(p):
+                            gp.set_parameter_vector(p)
+                            return -gp.log_likelihood(tmp_flux)
+
+                        def grad_neg_ln_like(p):
+                            gp.set_parameter_vector(p)
+                            return -gp.grad_log_likelihood(tmp_flux)
+
+                        result = minimize(neg_ln_like, gp.get_parameter_vector(), jac=grad_neg_ln_like)
+
+                        gp.set_parameter_vector(result.x)
+                        gp.thaw_parameter(metric_name)
 
                     # Finding where to end the fit (either reference filter or current filter in question)
                     days = np.arange(min(lc[ref][:,0]), max(lc[ref][:,0]))
