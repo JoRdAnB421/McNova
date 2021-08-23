@@ -1173,8 +1173,10 @@ if useInt!='y':
 
                                 # Finding the uncertainty in the magnitude at that time
                                 mag_unc = new_ref_mag_unc[np.where(k[0]==lc[ref][:,0])]
+
+                                
                                 # Appending the GP magnitude to the light curve, with the uncertainty
-                                out = np.array([k[0],mag,mag_unc])
+                                out = np.array([k[0],mag[0],mag_unc[0]])
                                 mag_int.append(out)
                     else:
                         print('No matches')
