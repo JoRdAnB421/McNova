@@ -54,7 +54,9 @@ All interpolated light curves are saved on output are saved as an output. On sub
         (The user can choose to change only uncertainties outside of the epoch range where the is data, or at any epoch which has uncertainties larger than a given amount)
     - Save interpolated light curves for reproducability
  - User sets up the parameters for the posterior sampling of a Monte Carlo Markov Cain, which attempts to fit a blackbody to SED at each epoch and find the optimal parameters        (temperature and radius) (most SNe can be reasonably approximated by blackbody above ~3000 Angstroms)
-    - For each epoch, corner plots are created to show the sampled parameter space of both temperature and radius, the user is able to choose some upper percentile to take as the       error on the parameters.  
+    - For each epoch, corner plots are created to show the sampled parameter space of both temperature and radius, the user is able to choose some upper percentile to take as the       error on the parameters.
+    - For a given epoch, it is possible that the BB fit somewhat breaks, this seems to be the case where the errors on some of the data points are significantly less than               the other points and so there is not much space for the fitting to be adjusted for the less well constrained points. This event is typically indicated by a very large log         likelihood absolute value (anything greater than ~ 5000 is cause for suspicion), therefore when the code encounters a case of these very large log likelihood values, it will 
+      plot the data points in question and the best fit it could reach for the user to see, the user then has the option to keep this fit in the final plot of all epochs (usually       for when the fit still reasonably resembles the shape of the data points) or to neglect the fit from the final plot (for where the fit doesn't resemble the shape of the data       points). In either case the results of this fit are still stored in the txt files.
  - In UV, user can choose to:
     - fit SED over all wavelengths with single blackbody
     - fit separate blackbodies to optical and UV (if UV data exist).
