@@ -12,6 +12,7 @@ version = '0'
 '''
 
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import scipy.integrate as itg
 from scipy.optimize import curve_fit, minimize
@@ -52,6 +53,43 @@ print('    * * * * * * * * * * * * * * * * * * * * * *\n\n')
 ax = plt.ion()
 
 # Define some functions:
+def plt_show_interactive(pythonIDEInformed = True):
+    """Show plot windows, with interaction if possible; prompt to continue.""" 
+    in_ipython = ('get_ipython' in globals())
+    inline_backend = ('inline' in matplotlib.get_backend())
+    in_linux = (sys.platform == 'linux')
+    
+    print(in_ipython)
+    print(inline_backend)
+    print(in_linux)
+    
+    if inline_backend:
+        plt.show()
+    elif not in_linux and in_ipython:
+        print("Press Ctrl-C to continue.")
+        try:    
+            while True:
+                plt.pause(0.5)
+        except KeyboardInterrupt:
+            print("Continuing.")
+    elif in_linux and not in_ipython:
+        # Command line: plots are interactive during wait for input.
+        plt.show(block=False)
+        input("Press ENTER to continue.")
+    elif in_linux and in_ipython:
+        # Loop with plt.pause(1) causes repeated focus stealing.
+        plt.pause(1)
+        if pythonIDEInformed == False:
+            print("Sorry, plots are not interactive until program has finished.")
+
+    elif not in_linux and not in_ipython:
+        # Ctrl-C is handled differently here.
+        plt.pause(1)
+        if pythonIDEInformed == False:           
+            input("Sorry, plots are not interactive due to python IDE setup. Press ENTER to continue.")
+
+     
+        
 def cardelli(lamb, Av, Rv=3.1, Alambda = True, debug=False):
     """
     Cardelli extinction Law
@@ -410,7 +448,6 @@ av_kernels = {'RationalQuadraticKernel': kernels.RationalQuadraticKernel,
                 'ExpKernel': kernels.ExpKernel,
                 'Matern32Kernel': kernels.Matern32Kernel}
 
-
 # First step is to search directory for existing mcnova files, or photometry files matching our naming conventions
 print('\n######### Step 1: input files and filters ##########')
 
@@ -602,6 +639,8 @@ plt.legend(numpoints=1,fontsize=16,ncol=2,frameon=True)
 plt.tight_layout(pad=0.5)
 plt.draw()
 
+plt_show_interactive(pythonIDEInformed = False)
+
 # Loop through dictionary and determine which filter has the most data
 ref1 = 0
 for i in filters:
@@ -688,6 +727,8 @@ if t1!='n':
     plt.ylabel('Magnitude')
     plt.tight_layout(pad=0.5)
     plt.draw()
+    
+    plt_show_interactive()
 
     # As long as happy ='n', user can keep refitting til they get a good result
     happy = 'n'
@@ -721,6 +762,8 @@ if t1!='n':
         plt.ylim(max(d1[:,1])+0.4,min(d1[:,1])-0.2)
         plt.tight_layout(pad=0.5)
         plt.draw()
+        
+        plt_show_interactive()        
 
         # Interactively choose a Kernal and set the metric (for stationary kernels)
         print('\n> Available kernels: ')
@@ -756,6 +799,8 @@ if t1!='n':
         plt.xlim(min(d[:,0])-5,Xup)
         plt.tight_layout(pad=0.5)
         plt.draw()
+        
+        plt_show_interactive()        
 
         # Check if user likes fit
         happy = input('\n> Happy with fit?(y/[n])   ')
@@ -783,6 +828,8 @@ if t1!='n':
         plt.tight_layout(pad=0.5)
         plt.draw()
         
+        plt_show_interactive()
+
     # If user instead wants observed peak, that shift was already done!
     if new_peak == 'o':
         peak = 0
@@ -801,12 +848,16 @@ plt.clf()
 for i in filters:
     plt.errorbar(lc[i][:,0],lc[i][:,1],lc[i][:,2],fmt='o',color=cols[i],label=i)
 
+
+
 plt.gca().invert_yaxis()
 plt.xlabel(xlab)
 plt.ylabel('Magnitude')
 plt.legend(numpoints=1,fontsize=16,ncol=2,frameon=True)
 plt.tight_layout(pad=0.5)
 plt.draw()
+
+plt_show_interactive()
 
 # Needed for K-correction step a bit later
 skipK = 'n'
@@ -852,6 +903,7 @@ if z<10:
     plt.tight_layout(pad=0.5)
     plt.draw()
 
+    plt_show_interactive()
 
     print('\n######### Step 3: Flux scale ##########')
 
@@ -952,6 +1004,9 @@ if useInt!='y':
                     plt.ylim(max(max(lc[ref][:,1]),max(lc[i][:,1]))+0.5,min(min(lc[ref][:,1]),min(lc[i][:,1]))-0.5)
                     plt.tight_layout(pad=0.5)
                     plt.draw()
+                    plt.show()
+
+                    plt_show_interactive()
 
                     # Interactively choose a Kernal and set the metric (for stationary kernels)
                     print('\n> Available kernels: ')
@@ -1012,6 +1067,8 @@ if useInt!='y':
                     plt.tight_layout(pad=0.5)
                     plt.draw()
                     
+                    plt_show_interactive()
+                    
                     change_all = False
                     change_outside = False
 
@@ -1030,6 +1087,8 @@ if useInt!='y':
 
                             mag_unc.remove()                           
                             mag_unc = plt.fill_between(days, pred_mag - pred_mag_err, pred_mag + pred_mag_err, color = 'k', alpha = 0.2)
+
+                            plt_show_interactive()
 
                             # resetting uncertainties until it is decided that these new uncertainties are worth keeping
                             new_mag_unc = np.array(pred_mag_err)
@@ -1057,6 +1116,8 @@ if useInt!='y':
                                 mag_unc.remove()
                                 # Fill in the uncertainty on the plots
                                 mag_unc = plt.fill_between(days, pred_mag - new_mag_unc, pred_mag + new_mag_unc, color = 'k', alpha = 0.2)
+
+                                plt_show_interactive()
 
                                 hp = input('\n> Happy with uncertainties?(y/[n])  ')
                                 if not hp: hp = 'n'
@@ -1099,6 +1160,8 @@ if useInt!='y':
                                 # Fill in the uncertainty on the plots
                                 mag_unc = plt.fill_between(days, pred_mag - new_mag_unc, pred_mag + new_mag_unc, color = 'k', alpha = 0.2)
 
+                                plt_show_interactive()
+
                                 hp = input('\n> Happy with uncertainties?(y/[n])  ')
                                 if not hp: hp = 'n'
                             
@@ -1107,7 +1170,7 @@ if useInt!='y':
                                 mag_unc = plt.fill_between(days, pred_mag - pred_mag_err, pred_mag + pred_mag_err, color = 'k', alpha = 0.2)
                                 hp = 'y'
                     
-
+                    plt_show_interactive()
                     # Check if happy with fit
                     happy = input('\n> Happy with fit?(y/[n])   ')
                     # Default is no
@@ -1215,6 +1278,8 @@ if useInt!='y':
                     plt.legend(numpoints=1,fontsize=16,ncol=2,frameon=True)
                     plt.tight_layout(pad=0.5)
                     plt.draw()
+
+                    plt_show_interactive()
                     
                     if len(tmp[tmp[:,0]<low])>0:
                         # If there are early extrapolated points, ask user whether they prefer polynomial, constant colour, or want to hedge their bets
@@ -1311,6 +1376,8 @@ if useInt!='y':
     # plt.ylim(max(max(lc_int[ref][:,1]),max(lc_int[i][:,1]))+0.5,min(min(lc_int[ref][:,1]),min(lc_int[i][:,1]))-0.5)
     plt.tight_layout(pad=0.5)
     plt.draw()
+
+    plt_show_interactive()
 
 # Or if light curves were already interpolated, no need for the last 250 lines!
 else:
@@ -1518,6 +1585,7 @@ plt.legend(numpoints=1,fontsize=16,ncol=2,frameon=True)
 plt.tight_layout(pad=0.5)
 plt.draw()
 
+plt_show_interactive()
 
 # New figure to display SEDs
 plt.figure(2,(8,8))
@@ -1667,7 +1735,7 @@ for i in range(len(phase)):
         
             plt.plot(np.arange(100,25000), BBmodel.mean.get_value(np.arange(100,25000))-fscale*k, color=cols[filters[k%len(filters)]],linestyle='-')
             plt.plot(np.arange(100,bluecut), BBmodel.mean.get_value(np.arange(100,bluecut))*(np.arange(100,bluecut)/bluecut)**sup-fscale*k, color=cols[filters[k%len(filters)]],linestyle=':')
-            plt.show()
+            plt_show_interactive()
 
             keep = input("\n>Would you like to keep this fit in the final plot of all time stamps?\nWarning! if the fit shown does not seem to accurately represent the points it is recommended to leave it out of the final plot.\nThe results will still be kept in the txt file. ('y', 'n')['n']    ")
             if not keep: keep = 'n'
@@ -1685,6 +1753,8 @@ for i in range(len(phase)):
             plt.plot(np.arange(100,25000), BBmodel.mean.get_value(np.arange(100,25000))-fscale*k, color=cols[filters[k%len(filters)]],linestyle='-')
             plt.plot(np.arange(100,bluecut), BBmodel.mean.get_value(np.arange(100,bluecut))*(np.arange(100,bluecut)/bluecut)**sup-fscale*k, color=cols[filters[k%len(filters)]],linestyle=':')
             
+            plt_show_interactive()
+
         # Defining the names of the two parameters
         tri_cols = ["Temp", "Radius"]
         tri_labels = ["Temp", "Radius"]
@@ -1788,7 +1858,7 @@ for i in range(len(phase)):
         
             plt.plot(np.arange(100,25000), BBmodel.mean.get_value(np.arange(100,25000))-fscale*k, color=cols[filters[k%len(filters)]],linestyle='-')
             plt.plot(np.arange(100,bluecut), BBmodel.mean.get_value(np.arange(100,bluecut))*(np.arange(100,bluecut)/bluecut)**sup-fscale*k, color=cols[filters[k%len(filters)]],linestyle=':')
-            plt.show()
+            plt_show_interactive()
 
             keep = input("\n>Would you like to keep this fit in the final plot of all time stamps?\nWarning! if the fit shown does not seem to accurately represent the points it is recommended to leave it out of the final plot.\nThe results will still be kept in the txt file. ('y', 'n')['n']    ")
             if not keep: keep = 'n'
@@ -1805,6 +1875,8 @@ for i in range(len(phase)):
         if keep == 'y':
             plt.plot(np.arange(100,25000), BBmodel.mean.get_value(np.arange(100,25000))-fscale*k, color=cols[filters[k%len(filters)]],linestyle='-')
             plt.plot(np.arange(100,bluecut), BBmodel.mean.get_value(np.arange(100,bluecut))*(np.arange(100,bluecut)/bluecut)**sup-fscale*k, color=cols[filters[k%len(filters)]],linestyle=':')
+
+        plt_show_interactive()
 
         tri_cols = ["Temp", "Radius"]
         tri_labels = ["Temp", "Radius"]
@@ -2001,6 +2073,8 @@ for i in range(len(phase)):
             plt.plot(np.arange(3000,25000),blackbody(np.arange(3000,25000),Topt,Ropt)-fscale*k,color=cols[filters[k%len(filters)]],linestyle='--',linewidth=1.5)
             plt.plot(np.arange(100,3600),blackbody(np.arange(100,3600),Tuv,Ruv)-fscale*k,color=cols[filters[k%len(filters)]],linestyle='-.',linewidth=1.5)
 
+            plt_show_interactive()
+
         except:
             # If UV fits failed, just write out the single BB fits
             Topt,Topt_err,Ropt,Ropt_err,L2bb,L2bb_err = np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
@@ -2030,7 +2104,9 @@ for i in range(len(phase)):
 
     if total_number <= 100:
         plt.legend(numpoints=1,ncol=2,fontsize=11,frameon=True, loc = 'center right')
-         
+
+    plt_show_interactive()
+
     curve_fit_temp = T1
     curve_fit_rad = R1
 
@@ -2043,6 +2119,8 @@ plt.figure(2)
 plt.yticks([])
 plt.xlim(min(wlref)-2000,max(wlref)+3000)
 plt.tight_layout(pad=0.5)
+
+plt_show_interactive()
 
 # Add methodologies and keys to output files so user knows which approximations were made in this run
 out1.write('\n#KEY\n# Lobs = integrate observed fluxes with no BB fit\n# L+BB = observed flux + BB fit extrapolation')
@@ -2116,7 +2194,7 @@ plt.xlabel(xlab)
 plt.subplots_adjust(hspace=0)
 plt.tight_layout(pad=0.5)
 plt.draw()
-plt.show()
+plt_show_interactive()
 
 
 plt.figure(1)
