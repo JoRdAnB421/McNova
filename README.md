@@ -17,6 +17,14 @@ Code is written in Python 3 (Should work for all verisons)
 To run code:
 ```python McNova.py```
 
+Depending on your python IDE, you may face trouble with the plots not showing or being unresponsive. Particular true when using Spyder 4 or previous versions, to get around this you can change the namespace that the code is run in. As default Spyder 4.0 and previous versions run in an empty namespace, however by changing this to the console's namespace, you will have fully interactive plots without breaking the code. 
+
+To change the namespace follow these steps:
+- Click on run on the top toolbar.
+- Click Configuration per file.
+- Under 'General settings' make sure that the option 'Run in console's namespace instead of an empty one' is highlighted.
+- You may need to restart the terminal before running the code. 
+
 # Versions
 ```Version 0   : Written by Jordan Barber (CU), 2021```
 
