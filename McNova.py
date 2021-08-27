@@ -59,10 +59,6 @@ def plt_show_interactive(pythonIDEInformed = True):
     inline_backend = ('inline' in matplotlib.get_backend())
     in_linux = (sys.platform == 'linux')
     
-    print(in_ipython)
-    print(inline_backend)
-    print(in_linux)
-    
     if inline_backend:
         plt.show()
     elif not in_linux and in_ipython:
@@ -80,13 +76,13 @@ def plt_show_interactive(pythonIDEInformed = True):
         # Loop with plt.pause(1) causes repeated focus stealing.
         plt.pause(1)
         if pythonIDEInformed == False:
-            print("Sorry, plots are not interactive until program has finished.")
+            print("Sorry, plots might not be interactive until program has finished.")
 
     elif not in_linux and not in_ipython:
         # Ctrl-C is handled differently here.
         plt.pause(1)
         if pythonIDEInformed == False:           
-            input("Sorry, plots are not interactive due to python IDE setup. Press ENTER to continue.")
+            input("Sorry, plots might not be interactive due to python IDE setup. Press ENTER to continue.")
 
      
         
@@ -772,9 +768,16 @@ if t1!='n':
         kernel = input('\n>> What type of kernel would you like to use?[Matern32Kernel]   ')
         metric = input('\n>> What value do you want to use for the metric?[500]   ')
         if not metric: metric = metric1
+        metric = float(metric)
         if not kernel: kernel = av_kernels['Matern32Kernel'](metric)
+        elif kernel == 'RationalQuadraticKernel':
+            log_alpha = input('\n>> What value to use for the gamma distribution parameter (log(alpha))?[1]   ')
+            if not log_alpha: log_alpha = 1
+            log_alpha = float(log_alpha)
+
+            kernel = av_kernels[kernel](log_alpha, metric)
         else:
-            kernel = av_kernels[str(kernel)](metric)
+            kernel = av_kernels[kernel](metric)
 
         # Convert magnitudes into flux and defining the kernel
         ref_flux, ref_flux_err = mag2flux(ref, d1[:,1], d1[:,2], dist=dist, zp = zp)
@@ -1014,12 +1017,25 @@ if useInt!='y':
 
                     kernel = input('\n>> What type of kernel would you like to use?[Matern32Kernel]   ')
                     metric = input('\n>> What value do you want to use for the metric?[500](q to quit and use constant colour)   ')
+                    
                     # If user decides that they cannot get a good fit 
                     if metric == 'q':
                         break
-                    # Or use default metric
-                    if not metric: metric = metric1
+                    
+                    # Go to default metric if only return is pressed
+                    elif not metric: metric = metric1
+                    metric = float(metric)
+
                     if not kernel: kernel = av_kernels['Matern32Kernel'](metric)
+                    elif kernel == 'RationalQuadraticKernel':
+                        # The RationalQuadraticKernel requires an addition input with the metric, the gamma distribution parameter
+                        log_alpha = input('\n>> What value to use for the gamma distribution parameter (log(alpha))?[1]   ')
+                        if not log_alpha: log_alpha = 1
+                        log_alpha = float(log_alpha)
+
+                        kernel = av_kernels[kernel](log_alpha, metric)
+                    else:
+                        kernel = av_kernels[kernel](metric)
 
                     # Converting from magnitudes to flux so that the GP fits correctly
                     tmp_flux, tmp_flux_err = mag2flux(i, lc[i][:,1], lc[i][:,2], dist=dist, zp = zp)
@@ -1627,11 +1643,13 @@ curve_fit_rad = 1e15
 
 total_number = len(phase)
 
-temp_param_space = input('\n> Set an initial upper/lower limit for the temperature parameter space:[3000K]    ')
+print('\n################################################\nHere we are defining the temperature and radius parameter space for each epoch. \n\nFor example if you choose the default 3000K the temperature parameter space will be set up as T-3000 --> T+3000 where T is the temperature found for the previous epoch.')
+temp_param_space = input('\n> Set an initial upper/lower limit for the temperature (K) parameter space:[3000]    ')
 if not temp_param_space: temp_param_space = 3000
 temp_param_space = float(temp_param_space)
 
-rad_param_space = input('\n> Set an initial limit (factor of initial guess) for the radius parameter space:[0.8]    ')
+print('\nThe radius parameter space is set up as a fraction of the previous radius. For example if you input the default 0.8, the parameter space will be R-0.8R --> R+0.8R where R is the radius found at the previous epoch.')
+rad_param_space = input('\n> Set an initial limit (as a factor of initial guess) for the radius parameter space:[0.8]    ')
 if not rad_param_space: rad_param_space = 0.8
 rad_param_space = float(rad_param_space)
 
@@ -1673,7 +1691,7 @@ for i in range(len(phase)):
     
     print('\n\nCurvefit used to find best initial guess for the black body fit:')
     print('Best Initial temperature guess: {} K'.format(float(ini_temp)))
-    print('Best Initial radius guess: {:.3g} m'.format(float(ini_rad)))
+    print('Best Initial radius guess: {:.3g} cm'.format(float(ini_rad)))
 
     if inc_noise == 'n':            
         # Model the blackbody at each time step without considering the correlated noise between the data points
@@ -2113,7 +2131,7 @@ for i in range(len(phase)):
     # Counter shifts down next SED on plot for visibility
     k += 1
 
-    print('Completed loop {0} out of {1}'.format(k-1, total_number))
+    print('Completed epoch {0} out of {1}'.format(k-1, total_number))
 
 plt.figure(2)
 plt.yticks([])
@@ -2194,6 +2212,7 @@ plt.xlabel(xlab)
 plt.subplots_adjust(hspace=0)
 plt.tight_layout(pad=0.5)
 plt.draw()
+
 plt_show_interactive()
 
 
