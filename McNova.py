@@ -551,14 +551,15 @@ for i in use1:
     # get filter from file name and add to list
     # filts1 keeps track of filters IN THAT FILE ONLY, filts2 is ALL filters across ALL files.
     filts1 = files[i].split('.')[0]
-    filts1 = filts1.split('_')[-1]
+    filts1 = filts1.split('_')[-1].split('[')[0]
     filts2 += filts1
-
+    print(filts1)
     # Here we read in the files using genfromtxt. Uses try statements to catch a few common variants of the input, e.g. with csv or header rows
     try:
         d = np.genfromtxt(files[i])
         x = 1
         for j in filts1:
+            print(j)
             # loop over filters (j) in file and add each light curve to dictionary
             # column 0 is time, odd columns (x) are magnitudes, even columns (x+2) are errors
             lc[j] = np.array(list(zip(d[:,0][~np.isnan(d[:,x])],d[:,x][~np.isnan(d[:,x])],d[:,x+1][~np.isnan(d[:,x])])))
