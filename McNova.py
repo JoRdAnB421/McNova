@@ -236,45 +236,6 @@ class Bbody(Model):
 
         return Radiance
 
-def blackbody(lam, T, R):
-        '''
-        Calculate the corresponding blackbody radiance for a set
-        of wavelengths given a temperature and radiance.
-        Parameters
-        ---------------
-        lam: Reference wavelengths in Angstroms
-        T:   Temperature in Kelvin
-        R:   Radius in cm
-        Output
-        ---------------
-        Spectral radiance in units of erg/s/Angstrom
-        (calculation and constants checked by Sebastian Gomez)
-        '''
-
-        # Planck Constant in cm^2 * g / s
-        h = 6.62607E-27
-        # Speed of light in cm/s
-        c = 2.99792458E10
-
-        # Convert wavelength to cm
-        lam_cm = lam * 1E-8
-
-        # Boltzmann Constant in cm^2 * g / s^2 / K
-        k_B = 1.38064852E-16
-
-        # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
-        exponential = (h * c) / (lam_cm * k_B * T)        
-        B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
-        
-        # Multiply by the surface area
-        A = 4*np.pi*R**2
-
-        # Output radiance in units of (erg / s) / Angstrom
-        Radiance = B_lam * A / 1E8
-
-        return Radiance
-
-
 def easyint(x,y,err,xref,yref):
     '''
     Adapt scipy interpolation to include extrapolation for filters missing early/late data
@@ -553,13 +514,12 @@ for i in use1:
     filts1 = files[i].split('.')[0]
     filts1 = filts1.split('_')[-1].split('[')[0]
     filts2 += filts1
-    print(filts1)
+    
     # Here we read in the files using genfromtxt. Uses try statements to catch a few common variants of the input, e.g. with csv or header rows
     try:
         d = np.genfromtxt(files[i])
         x = 1
         for j in filts1:
-            print(j)
             # loop over filters (j) in file and add each light curve to dictionary
             # column 0 is time, odd columns (x) are magnitudes, even columns (x+2) are errors
             lc[j] = np.array(list(zip(d[:,0][~np.isnan(d[:,x])],d[:,x][~np.isnan(d[:,x])],d[:,x+1][~np.isnan(d[:,x])])))
@@ -1558,6 +1518,46 @@ if sep == 'n':
     if not sup: sup = 0
     sup = float(sup)
 
+
+def blackbody(lam, T, R, lambda_cutoff=bluecut, alpha=sup):
+        '''
+        Calculate the corresponding blackbody radiance for a set
+        of wavelengths given a temperature and radiance.
+        Parameters
+        ---------------
+        lam: Reference wavelengths in Angstroms
+        T:   Temperature in Kelvin
+        R:   Radius in cm
+        Output
+        ---------------
+        Spectral radiance in units of erg/s/Angstrom
+        (calculation and constants checked by Sebastian Gomez)
+        '''
+
+        # Planck Constant in cm^2 * g / s
+        h = 6.62607E-27
+        # Speed of light in cm/s
+        c = 2.99792458E10
+
+        # Convert wavelength to cm
+        lam_cm = lam * 1E-8
+
+        # Boltzmann Constant in cm^2 * g / s^2 / K
+        k_B = 1.38064852E-16
+
+        # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
+        exponential = (h * c) / (lam_cm * k_B * T)        
+        B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
+        B_lam[x <= lambda_cutoff] *= (x[x <= lambda_cutoff]/lambda_cutoff)**alpha
+
+        # Multiply by the surface area
+        A = 4*np.pi*R**2
+
+        # Output radiance in units of (erg / s) / Angstrom
+        Radiance = B_lam * A / 1E8
+
+        return Radiance
+
 # Open output files for bolometric light curve and blackbody parameters
 out1 = open(outdir+'/bol_'+sn+'_'+filters+'.txt','w')
 out2 = open(outdir+'/BB_params_'+sn+'_'+filters+'.txt','w')
@@ -1639,7 +1639,7 @@ if not ask_at_each_step:
 corner_dir = outdir+'/Corner_plots_'+sn
 if not os.path.exists(corner_dir): os.makedirs(corner_dir)
 
-curve_fit_temp = 8000
+curve_fit_temp = 10000
 curve_fit_rad = 1e15
 
 total_number = len(phase)
@@ -1653,6 +1653,14 @@ print('\nThe radius parameter space is set up as a fraction of the previous radi
 rad_param_space = input('\n> Set an initial limit (as a factor of initial guess) for the radius parameter space:[0.8]    ')
 if not rad_param_space: rad_param_space = 0.8
 rad_param_space = float(rad_param_space)
+
+curve_fit_temp = input('\nInitial guess for starting temperature:[10000]  ')
+if not curve_fit_temp: curve_fit_temp=10000
+curve_fit_temp = float(curve_fit_temp)
+
+curve_fit_rad = input('\nInitial guess for starting raidus:[1.0e15cm]  ')
+if not curve_fit_rad: curve_fit_rad=1e15
+curve_fit_rad = float(curve_fit_rad)
 
 # Looping through reference epochs
 for i in range(len(phase)):
