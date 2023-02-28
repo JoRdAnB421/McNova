@@ -370,10 +370,29 @@ wle = {'u': 3560,  'g': 4830, 'r': 6260, 'i': 7670, 'z': 8890, 'y': 9600, 'w':59
 # ATLAS values taken from Tonry et al 2018
 
 #All values in 1e-11 erg/s/cm2/Angs
-zp = {'u': 859.5, 'g': 466.9, 'r': 278.0, 'i': 185.2, 'z': 137.8, 'y': 118.2, 'w': 245.7, 'Y': 118.2,
-      'U': 417.5, 'B': 632.0, 'V': 363.1, 'R': 217.7, 'G': 240.0, 'I': 112.6, 'J': 31.47, 'H': 11.38,
-      'K': 3.961, 'S': 536.2, 'D': 463.7, 'A': 412.3, 'F': 4801., 'N': 2119., 'o': 236.2, 'c': 383.3,
-      'W': 0.818, 'Q': 0.242}
+# zp = {'u': 859.5, 'g': 466.9, 'r': 278.0, 'i': 185.2, 'z': 137.8, 'y': 118.2, 'w': 245.7, 'Y': 118.2,
+#       'U': 417.5, 'B': 632.0, 'V': 363.1, 'R': 217.7, 'G': 240.0, 'I': 112.6, 'J': 31.47, 'H': 11.38,
+#       'K': 3.961, 'S': 536.2, 'D': 463.7, 'A': 412.3, 'F': 4801., 'N': 2119., 'o': 236.2, 'c': 383.3,
+#       'W': 0.818, 'Q': 0.242}
+
+
+# New Sept 2022: All ZPs from SVO filter service
+zp_AB = {'u': 867.6, 'g': 487.6, 'r': 282.9, 'i': 184.9, 'z': 98.6, 'y': 117.8, 'w': 303.8, 'Y': 117.8,
+      'U': 847.1, 'B': 569.7, 'V': 362.8, 'R': 257.8, 'I': 169.2, 'G': 278.5, 'E': 278.5,
+      'J': 72.2, 'H': 40.5, 'K': 23.5, 'S': 2502.2, 'D': 2158.3, 'A': 1510.9, 'F': 4536.6, 'N': 2049.9,
+      'o': 238.9, 'c': 389.3, 'W': 9.9, 'Q': 5.2}
+      
+zp_Vega = {'u': 351.1, 'g': 526.6, 'r': 242.6, 'i': 127.4, 'z': 49.5, 'y': 71.5, 'w': 245.7, 'Y': 71.5,
+      'U': 396.5, 'B': 613.3, 'V': 362.7, 'R': 217.0, 'I': 112.6, 'G': 249.8, 'E': 249.8,
+      'J': 31.3, 'H': 11.3, 'K': 4.3, 'S': 523.7, 'D': 457.9, 'A': 408.4, 'F': 650.6, 'N': 445.0,
+      'o': 193.1, 'c': 400.3, 'W': 0.818, 'Q': 0.242}
+
+#Default system
+default_sys = {'u': 'AB',  'g': 'AB', 'r': 'AB', 'i': 'AB',  'z': 'AB', 'y': 'AB', 'w': 'AB', 'Y': 'Vega',
+         'U': 'Vega',  'B': 'Vega', 'V': 'Vega', 'R': 'Vega', 'G': 'AB', 'E': 'AB', 'I': 'Vega',
+         'J': 'Vega', 'H': 'Vega', 'K': 'Vega', 'S': 'Vega', 'D': 'Vega', 'A': 'Vega',  'F': 'AB',
+         'N': 'AB', 'o': 'AB', 'c': 'AB', 'W': 'Vega', 'Q': 'Vega'}
+
 
 #Filter widths (in Angs)
 width = {'u': 458,  'g': 928, 'r': 812, 'i': 894,  'z': 1183, 'y': 628, 'w': 2560, 'Y': 628,
@@ -554,6 +573,33 @@ filters = str()
 for i in bandlist:
     if i in filts2:
         filters += i
+
+
+print('\nDefault photometric systems:')
+print(default_sys)
+
+is_correct_system = input('\n> Are all bands in their default systems? ([y]/n)  ')
+if not is_correct_system: is_correct_system = 'y'
+
+systems = {}
+if is_correct_system == 'n':
+    for i in filters:
+        # This loop should ask for each band if it is in A-B or V-ega, and add to a dictionary
+        sys1 = input('Is '+i+'-band data in [A]-B or V-ega? ')
+        if not sys1: sys1 = 'AB'
+        systems[i] = sys1
+else:
+    for i in filters:
+        systems[i] = default_sys[i]
+
+# Go through the choosen zero points and ensure that the dictionary zp is defined 
+# correctly
+zp = {}
+for i in filters:
+    if systems[i] == 'Vega':
+        zp[i] = zp_Vega[i]
+    else:
+        zp[i] = zp_AB[i]
 
 # If a filter name is not recognised, prompt user to add its properties manually
 for i in filts2:
@@ -1433,7 +1479,10 @@ bandwidths = []
 # Loop over used filters and populate lists from dictionaries of band properties
 for i in filters:
     wlref.append(float(wle[i]))
-    fref.append(zp[i]*1e-11)
+    if systems[i] == 'Vega':
+        fref.append(zp_Vega[i]*1e-11)
+    else:
+        fref.append(zp_AB[i]*1e-11)
     wlref1.append(float(wle[i]))
     bandwidths.append(float(width[i]))
 
@@ -1548,7 +1597,7 @@ def blackbody(lam, T, R, lambda_cutoff=bluecut, alpha=sup):
         # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
         exponential = (h * c) / (lam_cm * k_B * T)        
         B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
-        B_lam[x <= lambda_cutoff] *= (x[x <= lambda_cutoff]/lambda_cutoff)**alpha
+        B_lam[lam_cm <= lambda_cutoff] *= (lam_cm[lam_cm <= lambda_cutoff]/lambda_cutoff)**alpha
 
         # Multiply by the surface area
         A = 4*np.pi*R**2
@@ -1697,7 +1746,15 @@ for i in range(len(phase)):
 
     ini_temp = BBparams[0]
     ini_rad = np.abs(BBparams[1])
+
+    plt.figure()
+    x = np.linspace(min(wlref), max(wlref), 100)
+    plt.scatter(wlref, flux, color='black', marker='x')
+    plt.plot(x, blackbody(x, ini_temp, ini_rad), linestyle='--')
     
+    plt.show()
+    input()
+
     print('\n\nCurvefit used to find best initial guess for the black body fit:')
     print('Best Initial temperature guess: {} K'.format(float(ini_temp)))
     print('Best Initial radius guess: {:.3g} cm'.format(float(ini_rad)))
@@ -1805,7 +1862,7 @@ for i in range(len(phase)):
 
         
     elif inc_noise == 'y':        
-        # Model the blackbody at each time step without considering the correlated noise between the data points
+        # Model the blackbody at each time step while considering the correlated noise between the data points
         # Defining the truth array
         truth = dict(Temp = ini_temp, Radius = ini_rad)
         
