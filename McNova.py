@@ -104,7 +104,7 @@ def cardelli(lamb, Av, Rv=3.1, Alambda = True, debug=False):
         _lamb = lamb[:]
 
     #init variables
-    x = 1/(_lamb) #wavenumber in um^-1
+    x = 1e4/(_lamb) #wavenumber in um^-1
     a = np.zeros(np.size(x))
     b = np.zeros(np.size(x))
     #Infrared (Eq 2a,2b)
@@ -193,48 +193,6 @@ def flux2mag(filter, flux, flux_err, dist, zp, corK = True):
     mag_err = flux_err/(np.log(10)*flux)*2.5
     
     return mag, mag_err
-
-class Bbody(Model):
-    parameter_names = ('Temp', 'Radius')
-
-    def get_value(self, lam):
-        '''
-        Calculate the corresponding blackbody radiance for a set
-        of wavelengths given a temperature and radiance.
-        Parameters
-        ---------------
-        lam: Reference wavelengths in Angstroms
-        T:   Temperature in Kelvin
-        R:   Radius in cm
-        Output
-        ---------------
-        Spectral radiance in units of erg/s/Angstrom
-        (calculation and constants checked by Sebastian Gomez)
-        '''
-        lam = lam.flatten()
-
-        # Planck Constant in cm^2 * g / s
-        h = 6.62607E-27
-        # Speed of light in cm/s
-        c = 2.99792458E10
-
-        # Convert wavelength to cm
-        lam_cm = lam * 1E-8
-
-        # Boltzmann Constant in cm^2 * g / s^2 / K
-        k_B = 1.38064852E-16
-
-        # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
-        exponential = (h * c) / (lam_cm * k_B * self.Temp)
-        B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
-
-        # Multiply by the surface area
-        A = 4*np.pi*self.Radius**2
-
-        # Output radiance in units of (erg / s) / Angstrom
-        Radiance = B_lam * A / 1E8
-
-        return Radiance
 
 def easyint(x,y,err,xref,yref):
     '''
@@ -1437,7 +1395,11 @@ for i in lc_int:
     redvec = cardelli(wavelength, Av=extinction_coeff*ebv, Rv=extinction_coeff)
     
     # Adjusting the magnitude for the reddening affect
-    lc_int[i][:,1] = lc_int[i][:,1] - 2.5*np.log10(np.exp(-redvec))
+    #lc_int[i][:,1] = lc_int[i][:,1] - 2.5*np.log10(np.exp(-redvec))
+
+for i in lc_int:
+    # Subtract the foreground extinction using input E(B-V) and coefficients from YES
+    lc_int[i][:,1]-=extco[i]*ebv
 
 # If UVOT bands are in AB, need to convert to Vega
 if 'S' in lc_int or 'D' in lc_int or 'A' in lc_int:
@@ -1567,6 +1529,48 @@ if sep == 'n':
     if not sup: sup = 0
     sup = float(sup)
 
+class Bbody(Model):
+    parameter_names = ('Temp', 'Radius')
+
+    def get_value(self, lam, lambda_cutoff=bluecut, alpha=sup):
+        '''
+        Calculate the corresponding blackbody radiance for a set
+        of wavelengths given a temperature and radiance.
+        Parameters
+        ---------------
+        lam: Reference wavelengths in Angstroms
+        T:   Temperature in Kelvin
+        R:   Radius in cm
+        Output
+        ---------------
+        Spectral radiance in units of erg/s/Angstrom
+        (calculation and constants checked by Sebastian Gomez)
+        '''
+        lam = lam.flatten()
+
+        # Planck Constant in cm^2 * g / s
+        h = 6.62607E-27
+        # Speed of light in cm/s
+        c = 2.99792458E10
+
+        # Convert wavelength to cm
+        lam_cm = lam * 1E-8
+
+        # Boltzmann Constant in cm^2 * g / s^2 / K
+        k_B = 1.38064852E-16
+
+        # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
+        exponential = (h * c) / (lam_cm * k_B * self.Temp)
+        B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
+        B_lam[lam <= lambda_cutoff] *= (lam[lam <= lambda_cutoff]/lambda_cutoff)**alpha
+
+        # Multiply by the surface area
+        A = 4*np.pi*self.Radius**2
+
+        # Output radiance in units of (erg / s) / Angstrom
+        Radiance = B_lam * A / 1E8
+
+        return Radiance
 
 def blackbody(lam, T, R, lambda_cutoff=bluecut, alpha=sup):
         '''
@@ -1597,7 +1601,7 @@ def blackbody(lam, T, R, lambda_cutoff=bluecut, alpha=sup):
         # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
         exponential = (h * c) / (lam_cm * k_B * T)        
         B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
-        B_lam[lam_cm <= lambda_cutoff] *= (lam_cm[lam_cm <= lambda_cutoff]/lambda_cutoff)**alpha
+        B_lam[lam <= lambda_cutoff] *= (lam[lam <= lambda_cutoff]/lambda_cutoff)**alpha
 
         # Multiply by the surface area
         A = 4*np.pi*R**2
@@ -1688,9 +1692,6 @@ if not ask_at_each_step:
 corner_dir = outdir+'/Corner_plots_'+sn
 if not os.path.exists(corner_dir): os.makedirs(corner_dir)
 
-curve_fit_temp = 10000
-curve_fit_rad = 1e15
-
 total_number = len(phase)
 
 print('\n################################################\nHere we are defining the temperature and radius parameter space for each epoch. \n\nFor example if you choose the default 3000K the temperature parameter space will be set up as T-3000 --> T+3000 where T is the temperature found for the previous epoch.')
@@ -1722,7 +1723,6 @@ for i in range(len(phase)):
     errs = np.zeros(len(filters))
     #for j in range(len(filters)):
 
-
     for j in range(len(filters)): 
         # Loop through filters and populate the SED tables with interpolated light curves
         mags[j] = lc_int[filters[j]][i,1]
@@ -1738,22 +1738,12 @@ for i in range(len(phase)):
     flux1 = np.append(flux1,0)
 
     # Sometimes the curve fit is unable to find optimal parameters when considering a sigma so if it fails then try without sigma
-    try:
-        BBparams, covar = curve_fit(blackbody,wlref,flux,p0=(curve_fit_temp,curve_fit_rad), sigma = ferr, bounds = [[0, 1e13], [25000, 1e20]])
-    except:
-        BBparams, covar = curve_fit(blackbody,wlref,flux,p0=(curve_fit_temp,curve_fit_rad), bounds = [[0, 1e13], [25000, 1e20]])
+    BBparams, covar = curve_fit(blackbody,wlref,flux,p0=(curve_fit_temp,curve_fit_rad), sigma = ferr, maxfev=5000, bounds = [[100, 1e13], [5e5, 1e19]])
 
 
     ini_temp = BBparams[0]
     ini_rad = np.abs(BBparams[1])
 
-    plt.figure()
-    x = np.linspace(min(wlref), max(wlref), 100)
-    plt.scatter(wlref, flux, color='black', marker='x')
-    plt.plot(x, blackbody(x, ini_temp, ini_rad), linestyle='--')
-    
-    plt.show()
-    input()
 
     print('\n\nCurvefit used to find best initial guess for the black body fit:')
     print('Best Initial temperature guess: {} K'.format(float(ini_temp)))
