@@ -1225,7 +1225,9 @@ if useInt!='y':
                         new_ref_mag_unc[index_high] = percent_from_fit*pred_mag_at_ref[index_high]
                         new_ref_mag_unc[index_low] = percent_from_fit*pred_mag_at_ref[index_low]
                         
-                        
+                    ####### Here it should be checking if the SN has reference points at the same time stamp! ############
+                    # Could be causing an error if values don't exactly match
+                    #                       
                     # Goal: if band has a point at same epoch as ref banc, use point, otherwise, use GP prediction with uncertainties
 
                     mag_int = []
@@ -2030,7 +2032,7 @@ for i in range(len(phase)):
             Ropt_err = np.diff(mcmc)
 
             ###########################################################
-            # Modelling the blackbody in the optical at each time step without considering the covariance between points
+            # Modelling the blackbody in the uv at each time step without considering the covariance between points
             print('\nBeginning MCMC for the uv regime')
             
             # Defining the truth array
@@ -2132,6 +2134,8 @@ for i in range(len(phase)):
     k += 1
 
     print('Completed epoch {0} out of {1}'.format(k-1, total_number))
+
+# added comment
 
 plt.figure(2)
 plt.yticks([])
