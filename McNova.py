@@ -104,7 +104,7 @@ def cardelli(lamb, Av, Rv=3.1, Alambda = True, debug=False):
         _lamb = lamb[:]
 
     #init variables
-    x = 1/(_lamb) #wavenumber in um^-1
+    x = 1e4/(_lamb) #wavenumber in um^-1
     a = np.zeros(np.size(x))
     b = np.zeros(np.size(x))
     #Infrared (Eq 2a,2b)
@@ -193,87 +193,6 @@ def flux2mag(filter, flux, flux_err, dist, zp, corK = True):
     mag_err = flux_err/(np.log(10)*flux)*2.5
     
     return mag, mag_err
-
-class Bbody(Model):
-    parameter_names = ('Temp', 'Radius')
-
-    def get_value(self, lam):
-        '''
-        Calculate the corresponding blackbody radiance for a set
-        of wavelengths given a temperature and radiance.
-        Parameters
-        ---------------
-        lam: Reference wavelengths in Angstroms
-        T:   Temperature in Kelvin
-        R:   Radius in cm
-        Output
-        ---------------
-        Spectral radiance in units of erg/s/Angstrom
-        (calculation and constants checked by Sebastian Gomez)
-        '''
-        lam = lam.flatten()
-
-        # Planck Constant in cm^2 * g / s
-        h = 6.62607E-27
-        # Speed of light in cm/s
-        c = 2.99792458E10
-
-        # Convert wavelength to cm
-        lam_cm = lam * 1E-8
-
-        # Boltzmann Constant in cm^2 * g / s^2 / K
-        k_B = 1.38064852E-16
-
-        # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
-        exponential = (h * c) / (lam_cm * k_B * self.Temp)
-        B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
-
-        # Multiply by the surface area
-        A = 4*np.pi*self.Radius**2
-
-        # Output radiance in units of (erg / s) / Angstrom
-        Radiance = B_lam * A / 1E8
-
-        return Radiance
-
-def blackbody(lam, T, R):
-        '''
-        Calculate the corresponding blackbody radiance for a set
-        of wavelengths given a temperature and radiance.
-        Parameters
-        ---------------
-        lam: Reference wavelengths in Angstroms
-        T:   Temperature in Kelvin
-        R:   Radius in cm
-        Output
-        ---------------
-        Spectral radiance in units of erg/s/Angstrom
-        (calculation and constants checked by Sebastian Gomez)
-        '''
-
-        # Planck Constant in cm^2 * g / s
-        h = 6.62607E-27
-        # Speed of light in cm/s
-        c = 2.99792458E10
-
-        # Convert wavelength to cm
-        lam_cm = lam * 1E-8
-
-        # Boltzmann Constant in cm^2 * g / s^2 / K
-        k_B = 1.38064852E-16
-
-        # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
-        exponential = (h * c) / (lam_cm * k_B * T)        
-        B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
-        
-        # Multiply by the surface area
-        A = 4*np.pi*R**2
-
-        # Output radiance in units of (erg / s) / Angstrom
-        Radiance = B_lam * A / 1E8
-
-        return Radiance
-
 
 def easyint(x,y,err,xref,yref):
     '''
@@ -409,10 +328,29 @@ wle = {'u': 3560,  'g': 4830, 'r': 6260, 'i': 7670, 'z': 8890, 'y': 9600, 'w':59
 # ATLAS values taken from Tonry et al 2018
 
 #All values in 1e-11 erg/s/cm2/Angs
-zp = {'u': 859.5, 'g': 466.9, 'r': 278.0, 'i': 185.2, 'z': 137.8, 'y': 118.2, 'w': 245.7, 'Y': 118.2,
-      'U': 417.5, 'B': 632.0, 'V': 363.1, 'R': 217.7, 'G': 240.0, 'I': 112.6, 'J': 31.47, 'H': 11.38,
-      'K': 3.961, 'S': 536.2, 'D': 463.7, 'A': 412.3, 'F': 4801., 'N': 2119., 'o': 236.2, 'c': 383.3,
-      'W': 0.818, 'Q': 0.242}
+# zp = {'u': 859.5, 'g': 466.9, 'r': 278.0, 'i': 185.2, 'z': 137.8, 'y': 118.2, 'w': 245.7, 'Y': 118.2,
+#       'U': 417.5, 'B': 632.0, 'V': 363.1, 'R': 217.7, 'G': 240.0, 'I': 112.6, 'J': 31.47, 'H': 11.38,
+#       'K': 3.961, 'S': 536.2, 'D': 463.7, 'A': 412.3, 'F': 4801., 'N': 2119., 'o': 236.2, 'c': 383.3,
+#       'W': 0.818, 'Q': 0.242}
+
+
+# New Sept 2022: All ZPs from SVO filter service
+zp_AB = {'u': 867.6, 'g': 487.6, 'r': 282.9, 'i': 184.9, 'z': 98.6, 'y': 117.8, 'w': 303.8, 'Y': 117.8,
+      'U': 847.1, 'B': 569.7, 'V': 362.8, 'R': 257.8, 'I': 169.2, 'G': 278.5, 'E': 278.5,
+      'J': 72.2, 'H': 40.5, 'K': 23.5, 'S': 2502.2, 'D': 2158.3, 'A': 1510.9, 'F': 4536.6, 'N': 2049.9,
+      'o': 238.9, 'c': 389.3, 'W': 9.9, 'Q': 5.2}
+      
+zp_Vega = {'u': 351.1, 'g': 526.6, 'r': 242.6, 'i': 127.4, 'z': 49.5, 'y': 71.5, 'w': 245.7, 'Y': 71.5,
+      'U': 396.5, 'B': 613.3, 'V': 362.7, 'R': 217.0, 'I': 112.6, 'G': 249.8, 'E': 249.8,
+      'J': 31.3, 'H': 11.3, 'K': 4.3, 'S': 523.7, 'D': 457.9, 'A': 408.4, 'F': 650.6, 'N': 445.0,
+      'o': 193.1, 'c': 400.3, 'W': 0.818, 'Q': 0.242}
+
+#Default system
+default_sys = {'u': 'AB',  'g': 'AB', 'r': 'AB', 'i': 'AB',  'z': 'AB', 'y': 'AB', 'w': 'AB', 'Y': 'Vega',
+         'U': 'Vega',  'B': 'Vega', 'V': 'Vega', 'R': 'Vega', 'G': 'AB', 'E': 'AB', 'I': 'Vega',
+         'J': 'Vega', 'H': 'Vega', 'K': 'Vega', 'S': 'Vega', 'D': 'Vega', 'A': 'Vega',  'F': 'AB',
+         'N': 'AB', 'o': 'AB', 'c': 'AB', 'W': 'Vega', 'Q': 'Vega'}
+
 
 #Filter widths (in Angs)
 width = {'u': 458,  'g': 928, 'r': 812, 'i': 894,  'z': 1183, 'y': 628, 'w': 2560, 'Y': 628,
@@ -551,9 +489,9 @@ for i in use1:
     # get filter from file name and add to list
     # filts1 keeps track of filters IN THAT FILE ONLY, filts2 is ALL filters across ALL files.
     filts1 = files[i].split('.')[0]
-    filts1 = filts1.split('_')[-1]
+    filts1 = filts1.split('_')[-1].split('[')[0]
     filts2 += filts1
-
+    
     # Here we read in the files using genfromtxt. Uses try statements to catch a few common variants of the input, e.g. with csv or header rows
     try:
         d = np.genfromtxt(files[i])
@@ -593,6 +531,33 @@ filters = str()
 for i in bandlist:
     if i in filts2:
         filters += i
+
+
+print('\nDefault photometric systems:')
+print(default_sys)
+
+is_correct_system = input('\n> Are all bands in their default systems? ([y]/n)  ')
+if not is_correct_system: is_correct_system = 'y'
+
+systems = {}
+if is_correct_system == 'n':
+    for i in filters:
+        # This loop should ask for each band if it is in A-B or V-ega, and add to a dictionary
+        sys1 = input('Is '+i+'-band data in [A]-B or V-ega? ')
+        if not sys1: sys1 = 'AB'
+        systems[i] = sys1
+else:
+    for i in filters:
+        systems[i] = default_sys[i]
+
+# Go through the choosen zero points and ensure that the dictionary zp is defined 
+# correctly
+zp = {}
+for i in filters:
+    if systems[i] == 'Vega':
+        zp[i] = zp_Vega[i]
+    else:
+        zp[i] = zp_AB[i]
 
 # If a filter name is not recognised, prompt user to add its properties manually
 for i in filts2:
@@ -1432,7 +1397,11 @@ for i in lc_int:
     redvec = cardelli(wavelength, Av=extinction_coeff*ebv, Rv=extinction_coeff)
     
     # Adjusting the magnitude for the reddening affect
-    lc_int[i][:,1] = lc_int[i][:,1] - 2.5*np.log10(np.exp(-redvec))
+    #lc_int[i][:,1] = lc_int[i][:,1] - 2.5*np.log10(np.exp(-redvec))
+
+for i in lc_int:
+    # Subtract the foreground extinction using input E(B-V) and coefficients from YES
+    lc_int[i][:,1]-=extco[i]*ebv
 
 # If UVOT bands are in AB, need to convert to Vega
 if 'S' in lc_int or 'D' in lc_int or 'A' in lc_int:
@@ -1474,7 +1443,10 @@ bandwidths = []
 # Loop over used filters and populate lists from dictionaries of band properties
 for i in filters:
     wlref.append(float(wle[i]))
-    fref.append(zp[i]*1e-11)
+    if systems[i] == 'Vega':
+        fref.append(zp_Vega[i]*1e-11)
+    else:
+        fref.append(zp_AB[i]*1e-11)
     wlref1.append(float(wle[i]))
     bandwidths.append(float(width[i]))
 
@@ -1559,6 +1531,88 @@ if sep == 'n':
     if not sup: sup = 0
     sup = float(sup)
 
+class Bbody(Model):
+    parameter_names = ('Temp', 'Radius')
+
+    def get_value(self, lam, lambda_cutoff=bluecut, alpha=sup):
+        '''
+        Calculate the corresponding blackbody radiance for a set
+        of wavelengths given a temperature and radiance.
+        Parameters
+        ---------------
+        lam: Reference wavelengths in Angstroms
+        T:   Temperature in Kelvin
+        R:   Radius in cm
+        Output
+        ---------------
+        Spectral radiance in units of erg/s/Angstrom
+        (calculation and constants checked by Sebastian Gomez)
+        '''
+        lam = lam.flatten()
+
+        # Planck Constant in cm^2 * g / s
+        h = 6.62607E-27
+        # Speed of light in cm/s
+        c = 2.99792458E10
+
+        # Convert wavelength to cm
+        lam_cm = lam * 1E-8
+
+        # Boltzmann Constant in cm^2 * g / s^2 / K
+        k_B = 1.38064852E-16
+
+        # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
+        exponential = (h * c) / (lam_cm * k_B * self.Temp)
+        B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
+        B_lam[lam <= lambda_cutoff] *= (lam[lam <= lambda_cutoff]/lambda_cutoff)**alpha
+
+        # Multiply by the surface area
+        A = 4*np.pi*self.Radius**2
+
+        # Output radiance in units of (erg / s) / Angstrom
+        Radiance = B_lam * A / 1E8
+
+        return Radiance
+
+def blackbody(lam, T, R, lambda_cutoff=bluecut, alpha=sup):
+        '''
+        Calculate the corresponding blackbody radiance for a set
+        of wavelengths given a temperature and radiance.
+        Parameters
+        ---------------
+        lam: Reference wavelengths in Angstroms
+        T:   Temperature in Kelvin
+        R:   Radius in cm
+        Output
+        ---------------
+        Spectral radiance in units of erg/s/Angstrom
+        (calculation and constants checked by Sebastian Gomez)
+        '''
+
+        # Planck Constant in cm^2 * g / s
+        h = 6.62607E-27
+        # Speed of light in cm/s
+        c = 2.99792458E10
+
+        # Convert wavelength to cm
+        lam_cm = lam * 1E-8
+
+        # Boltzmann Constant in cm^2 * g / s^2 / K
+        k_B = 1.38064852E-16
+
+        # Calculate Radiance B_lam, in units of (erg / s) / cm ^ 2 / cm
+        exponential = (h * c) / (lam_cm * k_B * T)        
+        B_lam = ((2 * np.pi * h * c ** 2) / (lam_cm ** 5)) / (np.exp(exponential) - 1)
+        B_lam[lam <= lambda_cutoff] *= (lam[lam <= lambda_cutoff]/lambda_cutoff)**alpha
+
+        # Multiply by the surface area
+        A = 4*np.pi*R**2
+
+        # Output radiance in units of (erg / s) / Angstrom
+        Radiance = B_lam * A / 1E8
+
+        return Radiance
+
 # Open output files for bolometric light curve and blackbody parameters
 out1 = open(outdir+'/bol_'+sn+'_'+filters+'.txt','w')
 out2 = open(outdir+'/BB_params_'+sn+'_'+filters+'.txt','w')
@@ -1640,9 +1694,6 @@ if not ask_at_each_step:
 corner_dir = outdir+'/Corner_plots_'+sn
 if not os.path.exists(corner_dir): os.makedirs(corner_dir)
 
-curve_fit_temp = 8000
-curve_fit_rad = 1e15
-
 total_number = len(phase)
 
 print('\n################################################\nHere we are defining the temperature and radius parameter space for each epoch. \n\nFor example if you choose the default 3000K the temperature parameter space will be set up as T-3000 --> T+3000 where T is the temperature found for the previous epoch.')
@@ -1655,6 +1706,14 @@ rad_param_space = input('\n> Set an initial limit (as a factor of initial guess)
 if not rad_param_space: rad_param_space = 0.8
 rad_param_space = float(rad_param_space)
 
+curve_fit_temp = input('\nInitial guess for starting temperature:[10000]  ')
+if not curve_fit_temp: curve_fit_temp=10000
+curve_fit_temp = float(curve_fit_temp)
+
+curve_fit_rad = input('\nInitial guess for starting raidus:[1.0e15cm]  ')
+if not curve_fit_rad: curve_fit_rad=1e15
+curve_fit_rad = float(curve_fit_rad)
+
 # Looping through reference epochs
 for i in range(len(phase)):
     step_factor = 0.00001
@@ -1665,7 +1724,6 @@ for i in range(len(phase)):
     mags = np.zeros(len(filters))
     errs = np.zeros(len(filters))
     #for j in range(len(filters)):
-
 
     for j in range(len(filters)): 
         # Loop through filters and populate the SED tables with interpolated light curves
@@ -1682,15 +1740,13 @@ for i in range(len(phase)):
     flux1 = np.append(flux1,0)
 
     # Sometimes the curve fit is unable to find optimal parameters when considering a sigma so if it fails then try without sigma
-    try:
-        BBparams, covar = curve_fit(blackbody,wlref,flux,p0=(curve_fit_temp,curve_fit_rad), sigma = ferr, bounds = [[0, 1e13], [25000, 1e20]])
-    except:
-        BBparams, covar = curve_fit(blackbody,wlref,flux,p0=(curve_fit_temp,curve_fit_rad), bounds = [[0, 1e13], [25000, 1e20]])
+    BBparams, covar = curve_fit(blackbody,wlref,flux,p0=(curve_fit_temp,curve_fit_rad), sigma = ferr, maxfev=5000, bounds = [[100, 1e13], [5e5, 1e19]])
 
 
     ini_temp = BBparams[0]
     ini_rad = np.abs(BBparams[1])
-    
+
+
     print('\n\nCurvefit used to find best initial guess for the black body fit:')
     print('Best Initial temperature guess: {} K'.format(float(ini_temp)))
     print('Best Initial radius guess: {:.3g} cm'.format(float(ini_rad)))
@@ -1798,7 +1854,7 @@ for i in range(len(phase)):
 
         
     elif inc_noise == 'y':        
-        # Model the blackbody at each time step without considering the correlated noise between the data points
+        # Model the blackbody at each time step while considering the correlated noise between the data points
         # Defining the truth array
         truth = dict(Temp = ini_temp, Radius = ini_rad)
         
